@@ -1,49 +1,46 @@
+{-# LANGUAGE TupleSections #-}
 module Main where
-import           Control.Monad (replicateM_)
-import           Data.Bits     (Bits (testBit))
-import           Data.Function (on)
-import           Data.IntMap   (IntMap, findWithDefault)
-import qualified Data.IntMap   as IntMap
-import           Data.List     (group, maximumBy, sort)
 
-toFreqTable :: Ord a => [a] -> [(a, Int)]
-toFreqTable = fmap (\x -> (head x, length x)) . group . sort
+import           Control.Monad         (replicateM_)
+import           Data.Bits             (Bits (clearBit))
+import qualified Data.ByteString.Char8 as C
+import           Data.IntMap
+import           Data.List             (unfoldr)
 
-toFreqMap :: [Int] -> IntMap Int
-toFreqMap = IntMap.fromList . toFreqTable
+solve :: Int -> [Int] -> Int
+solve n xs = n - maximum (elems freqMap)
+  where freqMap = fromListWith (+) $ (,1). (`clearBit` 0) <$> xs
 
-alternative :: (Bits a, Num a) => a -> a
-alternative x
-  | testBit x 0 = x - 1
-  | otherwise = x + 1
+readInt :: C.ByteString -> Int
+readInt s = let Just (i,_) = C.readInt s in i :: Int
 
-solve :: [Int] -> Int
-solve xs = n - length (filter isMaxCandidate xs)
+readInt2 :: C.ByteString -> (Int, Int)
+readInt2 u = (a, b)
   where
-  n = length xs
-  freq = toFreqMap xs
-  alxs = zip xs (alternative <$> xs)
-  getFreq a = findWithDefault 0 a freq
-  (maxa, maxb) = maximumBy (compare `on` (\(a, b) -> getFreq a + getFreq b)) alxs
-  isMaxCandidate e = e == maxa || e == maxb
+  Just (a,v) = C.readInt u
+  Just (b,_) = C.readInt (C.tail v)
 
-parseInt :: String -> Int
-parseInt = read
-
-getWords :: IO [String]
-getWords = words <$> getLine
-
-getInts :: IO [Int]
-getInts = fmap (fmap parseInt) getWords
+readInts :: C.ByteString -> [Int]
+readInts = unfoldr go where
+    go s = do
+        (n,s1) <- C.readInt s
+        let s2 = C.dropWhile (==' ') s1
+        pure (n,s2)
 
 getInt :: IO Int
-getInt = head <$> getInts
+getInt  = readInt <$> C.getLine
 
-doCase :: IO ()
-doCase = do
-  _ <- getInt
-  xs <- getInts
-  print $ solve xs
+getInt2 :: IO (Int, Int)
+getInt2 = readInt2 <$> C.getLine
+
+getInts :: IO [Int]
+getInts = readInts <$> C.getLine
 
 main :: IO ()
-main = getInt >>= flip replicateM_ doCase
+main = getInt >>= flip replicateM_ docase
+
+docase :: IO ()
+docase = do
+    n <- getInt
+    xs <- getInts
+    print $ solve n xs
